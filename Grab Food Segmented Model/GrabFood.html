@@ -1,0 +1,57 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head>
+<title>Circuit Breaker Agent Model</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+
+		<!-- d3 is for data visualization -->
+		<script type="text/javascript" src="lib/d3.min.js"></script>
+		
+		<!-- inspectElement is useful for debugging javascript objects -->
+		<script type="text/javascript" src="lib/inspectElement.js"></script>
+
+		<!-- plotly is for drawing graphs -->
+		<script type="text/javascript" src="lib/plotly.min.js"></script>
+				
+		<!-- custom styles for this application -->
+		<link rel="stylesheet" href="styles/basicagentmodel.css" media="screen">
+
+</head>
+<!-- Set class to official for more formal font; unofficial for informal font -->
+<body class="official bgColor6">
+	<p style="position:absolute;top:2.5%;left:50%; font-size:18px">Simulation Parameters</p>
+	<p style="position:absolute;top:2.5%;left:80%; font-size:18px">Graphs</p>
+	<div class = "placeholder-box">
+		<p style="position:absolute;top:2.5%;left:5%"> 1) Simulation Speed </p>
+		<p><input id="slider1" type="range" min="0" value="300" max="5000" step="10" onchange="redrawWindow();" style="position:absolute;top:12.5%;left:5%"/></p>
+		<p style="position:absolute;top:17.5%;left:5%"> 2) Probability Order Arrival </p>
+	    <p><input id="slider2" type="range" min="0" value="0.7" max="1" step="0.05" onchange="redrawWindow();" style="position:absolute;top:27.5%;left:5%" /></p>
+		<p style="position:absolute;top:32.5%;left:5%"> 3) Restaurant Cook Rate</p>
+		<p><input id="slider3" type="range" min="1" value="5" max="10" step="0.5" onchange="redrawWindow();" style="position:absolute;top:42.5%;left:5%" /></p>
+		<p style="position:absolute;top:47.5%;left:5%"> 4) Number of Restaurant</p>
+		<p><input id="slider4" type="range" min="1" value="5" max="10" step="1" onchange="redrawWindow();" style="position:absolute;top:57.5%;left:5%" /></p>
+		<p style="position:absolute;top:62.5%;left:5%"> 5) Number of Deliver</p>
+		<p><input id="slider5" type="range" min="1" value="10" max="20" step="1" onchange="redrawWindow();" style="position:absolute;top:72.5%;left:5%" /></p>
+		<p style="position:absolute;top:77.5%;left:5%"> 6) Region Size</p>
+		<p><input id="slider6" type="range" min="40" value="40" max="100" step="10" onchange="redrawWindow();" style="position:absolute;top:87.5%;left:5%" /></p>
+	</div>
+	</div>	
+	
+	<!-- The surface is the main playing field for the game -->
+	<svg  id="surface" style="width:100% height:100%" xmlns="http://www.w3.org/2000/svg" version="1.1" onclick="toggleSimStep();">
+	</svg>
+	
+	<div id="title"  style="position:absolute;bottom:0;left:0">Circuit Breaker Agent-Based Model</div>
+	<a id="credits" href="http://www.icons-land.com" style="position:absolute;bottom:0;right:0">Icons by icons-land.com</a>
+	
+	<!-- Anything below this line should be a popup window or dialog or a late-loading library -->
+	
+	<script type="text/javascript" src="lib/Slider_Reinitaliza.js"></script>
+
+	<!-- Add in Charts -->	
+	<div id="chart1" style="position:absolute; top:0%; left:66%; width:35%; height:55%;"></div>
+	<div id="chart2" style="position:absolute; top:40%; left:66%; width:35%; height:55%;"></div>
+	<script type="text/javascript" src="lib/AddPlot.js"></script>
+</body>
+</html>
