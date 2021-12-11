@@ -45,11 +45,11 @@ var areas =[
 
 // pqrameters
 var currentTime = 0;
-var number_deliver =5;
+var number_deliver =6;
 var number_restaranut = 7;
 var number_customer= 7;
-var probArrival = 0.5;
-var expoentialrate=0.6;
+var probArrival = 0.2;
+var expoentialrate=0.2;
 // Add building and path
 // We need to add buildings to the city. These buildings should be equally spaced from 3 to 3 cells. You can modify the spacing
 // Buildings is a empty list
@@ -89,7 +89,7 @@ for (var i = 0; i < rowBuildings.length; i++) {
 		}
 		if (IsRestaurant) {
 			var newrestarant ={"id":++i_r,"location":{"row":rowBuildings[i], "col":colBuildings[j]},
-			"state":IDLE,"timeAdmitted":0,"target":[],"Cook":false,"Deliver":false};
+			"state":IDLE,"timeAdmitted":0,"target":[],"Cook":false,"Deliver":false,"Customer":-1};
 	    	restaurants.push(newrestarant);
 
 		}
@@ -310,7 +310,7 @@ function addDynamicAgents(){
         }
         // delivers is set as RANDOM stage as beginging with finding random place to go
         var new_deliver={"id":i_d,"location":{"row":homerow,"col":homecol},
-        "target":{"row":targetrow,"col":targetcol},"state":RANDOM,"timeAdmitted":0,"picktime":HUGE,"customer":[],"restaurnt":-1};
+        "target":{"row":targetrow,"col":targetcol},"state":RANDOM,"timeAdmitted":0,"picktime":HUGE,"customer":[],"restaurnt":-1,"OrderID":-1};
         delievers.push(new_deliver)
     };
 
@@ -327,6 +327,7 @@ function addDynamicAgents(){
 		// change the restaurant to be busy
 		var restaurant=restaurants[target-1];
 		restaurant.state=BUSY;
+		restaurant.Customer=i_c;
 		var neworder={"location":{"row":homerow,"col":homecol}};
 		restaurant.target.push(neworder);
     	customers.push(newcustomer);
@@ -336,7 +337,7 @@ function addDynamicAgents(){
 	}
 
 //Update
-var deliver_arrived_distance=Math.sqrt(cellHeight*cellHeight+cellWidth*cellWidth);
+var deliver_arrived_distance=1;
 function updateDeliver(deliverIndex){
 	//deliverIndex is an index into the deliver data array
 	deliverIndex = Number(deliverIndex);
@@ -348,11 +349,11 @@ function updateDeliver(deliverIndex){
 	var endtime =deliver.picktime;
 	var r_id = deliver.restaurant;
 	var hasArrived =false;
-
-	// determine if citizen has arrived at the target
-	var distance=Math.sqrt((deliver.target.row-row)*(deliver.target.row-row)+(deliver.target.col-col)*(deliver.target.col-col))
 	
-	if (distance<deliver_arrived_distance){
+	// determine if citizen has arrived at the target
+	var distance= Math.abs(deliver.target.row-row) + Math.abs(deliver.target.col-col);
+	
+	if (distance<=deliver_arrived_distance){
 		hasArrived=true;
 	}
    	// Behavior of citizen depends on his or her state
@@ -381,25 +382,36 @@ function updateDeliver(deliverIndex){
 			if (hasArrived) {
 				if(currentTime>=endtime){
 					// pick and go to customer:
-					// var newrestarant ={"id":++i_r,"location":{"row":rowBuildings[i], "col":colBuildings[j]},"state":IDLE,"timeAdmitted":0,"target":[],"Cook":false,"Deliver":false};
+					// var newrestarant ={"id":++i_r,"location":{"row":rowBuildings[i], "col":colBuildings[j]},"state":IDLE,"timeAdmitted":0,"target":[],"Cook":false,"Deliver":false,"Customer":-1};
 					// var newcustomer = {"id":++i_c,"targer":target,"location":{"row":homerow,"col":homecol},"state":WAITING,"timeAdmitted":0};
 					// var neworder={"location":{"row":homerow,"col":homecol}};	
-					// var new_deliver={"id":i_d,"location":{"row":homerow,"col":homecol},"target":{"row":targetrow,"col":targetcol},"state":RANDOM,"timeAdmitted":0,"picktime":HUGE,"customer":[],"restaurant":-1}
+					// var new_deliver={"id":i_d,"location":{"row":homerow,"col":homecol},"target":{"row":targetrow,"col":targetcol},"state":RANDOM,"timeAdmitted":0,"picktime":HUGE,"customer":[],"restaurant":-1,"OrderID":-1}
 					var customer_location=deliver.customer.shift();
 					deliver.state=TOCUSTOMER;
 					deliver.target.row=customer_location.location.row;
 					deliver.target.col=customer_location.location.col;
 					picktime=HUGE;
-
 					// restaurant:
 					var restaurant = restaurants[r_id-1];
 					restaurant.state=IDLE;
 					restaurant.Deliver=false;
 					restaurant.Cook=false;
+					restaurant.Customer=-1;
+
 					
 				}}
 				
 		break;
+
+		case TOCUSTOMER:
+			if(hasArrived){
+				var customer_id=deliver.OrderID;
+				var startID=customers[0].id;
+				var difference = customer_id - startID;
+				var customer = customers[difference];
+				customer.state = EXIT;
+				deliver.state=RANDOM;
+			}
 
 		default:
         break;
@@ -472,17 +484,6 @@ function updateCustomers(customerIndex){
 	var state = customer.state;
 	
 	// Check deliver has arrived?
-	
-	switch(state){
-		case WAITING:
-			// if arrived update to exit 
-
-			break;
-		default:
-		break;
-
-		
-	}
 		
 }
 
@@ -494,6 +495,7 @@ function updateResaurant(restaurantIndex){
 	var col = restaurant.location.col;
 	var state = restaurant.state;
 	var id = restaurant.id;
+	var c_id=restaurant.Customer;
 	// Check deliver has arrived?
 	
 	switch(state){
@@ -539,6 +541,7 @@ function updateResaurant(restaurantIndex){
 					assigndeliver.state=TORESTAURANT;
 					assigndeliver.picktime=end_time;
 					assigndeliver.restaurant=id;
+					assigndeliver.OrderID=c_id;
 					// var newrestarant ={"id":++i_r,"location":{"row":rowBuildings[i], "col":colBuildings[j]},"state":IDLE,"timeAdmitted":0,"target":[],"Cook":false,"Deliver":false};
 					// var neworder={"location":{"row":homerow,"col":homecol}};
 					// var new_deliver={"id":i_d,"location":{"row":homerow,"col":homecol},"target":{"row":targetrow,"col":targetcol},"state":RANDOM,"timeAdmitted":0,"picktime":HUGE,"customer":[]}

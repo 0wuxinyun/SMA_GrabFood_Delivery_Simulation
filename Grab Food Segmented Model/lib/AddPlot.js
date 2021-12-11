@@ -15,14 +15,14 @@ const layout1 = {
 	paper_bgcolor: 'rgba(0,0,0,0)',
 	plot_bgcolor: 'rgba(0,0,0,0)',
 	xaxis: {title: 'Time'},
-	yaxis: {title: '% Infected'}
+	yaxis: {title: '% Service'}
 	};
 
 	const layout2 = {
 		paper_bgcolor: 'rgba(0,0,0,0)',
 		plot_bgcolor: 'rgba(0,0,0,0)',
 		xaxis: {title: 'Time'},
-		yaxis: {title: 'R0'}
+		yaxis: {title: 'Avg Serving Time'}
 	};
 
 // plot all charts
