@@ -6,12 +6,10 @@ var surface; // Set in the redrawWindow function. It is the D3 selection of the 
 var simTimer; // Set in the initialization function
 
 //The drawing surface will be divided into logical cells
-var maxCols = 100;
+var maxCols = 40;
 var cellWidth; //cellWidth is calculated in the redrawWindow function
 var cellHeight; //cellHeight is calculated in the redrawWindow function
 
-
-Math.seedrandom('hello')
 const urlCustomer="images/Customer.png";
 const urlDeliever = "images/Deliever.png";
 const urlBicycle = "images/bike.png";;
@@ -53,11 +51,11 @@ var areas =[
 
 // pqrameters
 var currentTime = 0;
-var number_deliver =25;
-var number_restaranut = 20;
+var number_deliver =20;
+var number_restaranut = 7;
 var number_customer= 7;
-var probArrival = 0.7;
-var expoentialrate=1;
+var probArrival = 0.1;
+var expoentialrate=10;
 var P_car=0.1;
 var P_bike=0.6;
 var P_motor=0.3
@@ -133,7 +131,7 @@ function getRandomInt(max) {
   }
   // discrete approx of exponential distribution
 function randomExponential(rate) {
-	//rate = rate || 1;
+	rate = rate || 1;
   
 	// Allow to pass a random uniform value or function
 	// Default to Math.random()
@@ -142,11 +140,11 @@ function randomExponential(rate) {
 	return -Math.log(U)/rate;
   }
 function randomGeometric(successProbability) {
-	//successProbability = successProbability || 1 - Math.exp(-1); // Equivalent to rate = 1
+	successProbability = successProbability || 1 - Math.exp(-1); // Equivalent to rate = 1
   
-	//var rate = -Math.log(1 - successProbability);
+	var rate = -Math.log(1 - successProbability);
   
-	return Math.floor(randomExponential(successProbability));
+	return Math.floor(randomExponential(rate));
   }
 // SETTING
 // This next function is executed when the script is loaded. It contains the page initialization code.
@@ -166,7 +164,6 @@ function toggleSimStep(){
 	// Search BasicAgentModel.html to find where it is called.
 	isRunning = !isRunning;
 	console.log("isRunning: "+isRunning);
-
 }
 
 function redrawWindow(){
@@ -800,7 +797,6 @@ function removeDynamicAgents(){
 }
 
 
-
 function simStep(){
 	//This function is called by a timer; if running, it executes one simulation step 
 	//The timing interval is set in the page initialization function near the top of this file
@@ -818,8 +814,7 @@ function simStep(){
         statistics[0].count=Customer_waiting;
         statistics[1].count=Customer_Served;
 		statistics[2].count=Customer_Served/(Customer_Served+Customer_waiting);
-		statistics[3].count=currentTime/Customer_Served;
-
+		statistics[3].count=Customer_Served/currentTime;
 	}
 }
 	

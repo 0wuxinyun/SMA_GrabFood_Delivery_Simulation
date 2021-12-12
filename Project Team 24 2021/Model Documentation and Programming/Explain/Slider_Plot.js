@@ -6,17 +6,12 @@ var surface; // Set in the redrawWindow function. It is the D3 selection of the 
 var simTimer; // Set in the initialization function
 
 //The drawing surface will be divided into logical cells
-var maxCols = 100;
+var maxCols = 40;
 var cellWidth; //cellWidth is calculated in the redrawWindow function
 var cellHeight; //cellHeight is calculated in the redrawWindow function
 
-
-Math.seedrandom('hello')
 const urlCustomer="images/Customer.png";
 const urlDeliever = "images/Deliever.png";
-const urlBicycle = "images/bike.png";;
-const urlCar = "images/car.png";
-const urlMotor = "images/motor.png";
 const urlRestaurant ="images/Restaurant.png"
 
 //Stage for agents
@@ -30,9 +25,6 @@ const EXIT=1;
 const BUSY=0;
 const IDLE=1;
 
-const CAR=0;
-const BIKE=1;
-const MOTOR=2;
 // Dynamic list
 var customers = [];
 var restaurants =[];
@@ -53,16 +45,11 @@ var areas =[
 
 // pqrameters
 var currentTime = 0;
-var number_deliver =25;
-var number_restaranut = 20;
+var number_deliver =20;
+var number_restaranut = 7;
 var number_customer= 7;
-var probArrival = 0.7;
-var expoentialrate=1;
-var P_car=0.1;
-var P_bike=0.6;
-var P_motor=0.3
-var bike_move=0.85;
-var motor_move=0.95;
+var probArrival = 0.1;
+var expoentialrate=10;
 // Add building and path
 // We need to add buildings to the city. These buildings should be equally spaced from 3 to 3 cells. You can modify the spacing
 // Buildings is a empty list
@@ -133,7 +120,7 @@ function getRandomInt(max) {
   }
   // discrete approx of exponential distribution
 function randomExponential(rate) {
-	//rate = rate || 1;
+	rate = rate || 1;
   
 	// Allow to pass a random uniform value or function
 	// Default to Math.random()
@@ -142,11 +129,11 @@ function randomExponential(rate) {
 	return -Math.log(U)/rate;
   }
 function randomGeometric(successProbability) {
-	//successProbability = successProbability || 1 - Math.exp(-1); // Equivalent to rate = 1
+	successProbability = successProbability || 1 - Math.exp(-1); // Equivalent to rate = 1
   
-	//var rate = -Math.log(1 - successProbability);
+	var rate = -Math.log(1 - successProbability);
   
-	return Math.floor(randomExponential(successProbability));
+	return Math.floor(randomExponential(rate));
   }
 // SETTING
 // This next function is executed when the script is loaded. It contains the page initialization code.
@@ -166,7 +153,6 @@ function toggleSimStep(){
 	// Search BasicAgentModel.html to find where it is called.
 	isRunning = !isRunning;
 	console.log("isRunning: "+isRunning);
-
 }
 
 function redrawWindow(){
@@ -335,8 +321,7 @@ function updateSurface(){
 	 .attr("y",function(d){var cell= getLocationCell(d.location); return cell.y+"px";})
 	 .attr("width", Math.min(cellWidth,cellHeight)+"px")
 	 .attr("height", Math.min(cellWidth,cellHeight)+"px")
-	 .attr("xlink:href",function(d){if (d.type==CAR) return urlCar; else{ if(d.type==BIKE) return urlBicycle;else return urlMotor;}})
-
+	 .attr("xlink:href",urlDeliever);
 	
 	// For the existing citizens, we want to update their location on the screen 
 	// but we would like to do it with a smooth transition from their previous position.
@@ -349,7 +334,7 @@ function updateSurface(){
 	images.transition()
 	 .attr("x",function(d){var cell= getLocationCell(d.location); return cell.x+"px";})
      .attr("y",function(d){var cell= getLocationCell(d.location); return cell.y+"px";})
-	 .attr("xlink:href",function(d){if (d.type==CAR) return urlCar; else{ if(d.type==BIKE) return urlBicycle;else return urlMotor;}})
+     .attr("xlink:href",urlDeliever)
 	 .duration(animationDelay).ease('linear'); // This specifies the speed and type of transition we want.
  
 	
@@ -461,20 +446,8 @@ function addDynamicAgents(){
         targetisbuilding=Buildings.filter(function(d){return d.row==targetrow && d.col==targetcol;});    
         }
         // delivers is set as RANDOM stage as beginging with finding random place to go
-		var temp= Math.random();
-		if(temp<P_car){
         var new_deliver={"id":i_d,"location":{"row":homerow,"col":homecol},
-        "target":{"row":targetrow,"col":targetcol},"state":RANDOM,"timeAdmitted":0,"picktime":HUGE,"customer":[],"restaurnt":-1,"OrderID":-1,"type":CAR};}
-		else{
-			if(temp<(P_car+P_bike)){
-				var new_deliver={"id":i_d,"location":{"row":homerow,"col":homecol},
-				"target":{"row":targetrow,"col":targetcol},"state":RANDOM,"timeAdmitted":0,"picktime":HUGE,"customer":[],"restaurnt":-1,"OrderID":-1,"type":BIKE};
-			}
-			else{
-				var new_deliver={"id":i_d,"location":{"row":homerow,"col":homecol},
-				"target":{"row":targetrow,"col":targetcol},"state":RANDOM,"timeAdmitted":0,"picktime":HUGE,"customer":[],"restaurnt":-1,"OrderID":-1,"type":MOTOR};
-			}
-		}
+        "target":{"row":targetrow,"col":targetcol},"state":RANDOM,"timeAdmitted":0,"picktime":HUGE,"customer":[],"restaurnt":-1,"OrderID":-1};
         delievers.push(new_deliver)
     };
 
@@ -521,22 +494,7 @@ function updateDeliver(deliverIndex){
 	var endtime =deliver.picktime;
 	var r_id = deliver.restaurant;
 	var hasArrived =false;
-	var type = deliver.type;
-	var move =false;
-	var tmep=Math.random();
-	switch(type){
-		case CAR:
-			move=true;
-			break;
-		case BIKE:
-			if(tmep<bike_move){move=true};
-			break;
-		case MOTOR:
-			if(tmep<motor_move){move=true};
-			break;
-		default:
-		break;
-	}
+	
 	// determine if citizen has arrived at the target
 	var distance= Math.abs(deliver.target.row-row) + Math.abs(deliver.target.col-col);
 	
@@ -610,7 +568,6 @@ function updateDeliver(deliverIndex){
         
 	}
 	// UPDATE
-	if(move){
 	   // set the current row and column of the citizen
 	   var currentrow=deliver.location.row;
 	   var currentcol=deliver.location.col;
@@ -665,7 +622,7 @@ function updateDeliver(deliverIndex){
 		deliver.location.col = newCol;
 		
 	
-}}
+}
 
 function updateCustomers(customerIndex){
 	//citizenIndex is an index into the citizens data array
@@ -800,7 +757,6 @@ function removeDynamicAgents(){
 }
 
 
-
 function simStep(){
 	//This function is called by a timer; if running, it executes one simulation step 
 	//The timing interval is set in the page initialization function near the top of this file
@@ -818,8 +774,7 @@ function simStep(){
         statistics[0].count=Customer_waiting;
         statistics[1].count=Customer_Served;
 		statistics[2].count=Customer_Served/(Customer_Served+Customer_waiting);
-		statistics[3].count=currentTime/Customer_Served;
-
+		statistics[3].count=Customer_Served/currentTime;
 	}
 }
 	
