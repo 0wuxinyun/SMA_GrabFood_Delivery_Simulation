@@ -12,6 +12,9 @@ var cellHeight; //cellHeight is calculated in the redrawWindow function
 
 const urlCustomer="images/Customer.png";
 const urlDeliever = "images/Deliever.png";
+const urlBicycle = "images/bike.png";;
+const urlCar = "images/car.png";
+const urlMotor = "images/motor.png";
 const urlRestaurant ="images/Restaurant.png"
 
 //Stage for agents
@@ -25,6 +28,9 @@ const EXIT=1;
 const BUSY=0;
 const IDLE=1;
 
+const CAR=0;
+const BIKE=1;
+const MOTOR=2;
 // Dynamic list
 var customers = [];
 var restaurants =[];
@@ -45,16 +51,21 @@ var areas =[
 
 // pqrameters
 var currentTime = 0;
-var number_deliver =5;
+var number_deliver =20;
 var number_restaranut = 7;
 var number_customer= 7;
-var probArrival = 0.5;
-var expoentialrate=0.6;
+var probArrival = 0.1;
+var expoentialrate=10;
+var P_car=0.1;
+var P_bike=0.6;
+var P_motor=0.3
+var bike_move=0.85;
+var motor_move=0.95;
 // Add building and path
 // We need to add buildings to the city. These buildings should be equally spaced from 3 to 3 cells. You can modify the spacing
 // Buildings is a empty list
 var Buildings = [];
-var barriers=[]
+var barriers=[];
 //Function used to compute the coordinates of each building
 // Compute feasible row coordinates and column coordinates
 function range(start, end, step = 1) {
@@ -89,7 +100,7 @@ for (var i = 0; i < rowBuildings.length; i++) {
 		}
 		if (IsRestaurant) {
 			var newrestarant ={"id":++i_r,"location":{"row":rowBuildings[i], "col":colBuildings[j]},
-			"state":IDLE,"timeAdmitted":0,"target":[],"Cook":false,"Deliver":false};
+			"state":IDLE,"timeAdmitted":0,"target":[],"Cook":false,"Deliver":false,"Customer":-1};
 	    	restaurants.push(newrestarant);
 
 		}
@@ -97,17 +108,30 @@ for (var i = 0; i < rowBuildings.length; i++) {
 		var newbuilding ={"row":rowBuildings[i], "col":colBuildings[j]};
 	    Buildings.push(newbuilding); }
 		IsRestaurant=false;
-		var newbarrier ={"row":rowBuildings[i], "col":colBuildings[j]};
+		var newbarrier ={"row":rowBuildings[i], "col":colBuildings[j],"count":0};
 		barriers.push(newbarrier);
+
 	}
   }
+// paramters
+  var maxrowbuilding=Math.max.apply(Math, rowBuildings);
+  var statistics = [
+	  {"name":"No. Customers Waiting: ","location":{"row":maxrowbuilding-4,"col":scol+ncol},"count":0},
+	  {"name":"No. Customers Served: ","location":{"row":maxrowbuilding-3,"col":scol+ncol},"count":0},
+	  {"name":"Service Rate: ","location":{"row":maxrowbuilding-2,"col":scol+ncol},"count":0},
+	  {"name":"Avg Serving Time: ","location":{"row":maxrowbuilding-1,"col":scol+ncol},"count":0},
+	  ];
+  var Customer_Served=0;
+  var Customer_waiting=0;
+
+
 // Help functions
 function getRandomInt(max) {
 	return Math.floor(Math.random() * max);
   }
   // discrete approx of exponential distribution
 function randomExponential(rate) {
-	rate = rate || 1;
+	//rate = rate || 1;
   
 	// Allow to pass a random uniform value or function
 	// Default to Math.random()
@@ -116,11 +140,11 @@ function randomExponential(rate) {
 	return -Math.log(U)/rate;
   }
 function randomGeometric(successProbability) {
-	successProbability = successProbability || 1 - Math.exp(-1); // Equivalent to rate = 1
+	//successProbability = successProbability || 1 - Math.exp(-1); // Equivalent to rate = 1
   
-	var rate = -Math.log(1 - successProbability);
+	//var rate = -Math.log(1 - successProbability);
   
-	return Math.floor(randomExponential(rate));
+	return Math.floor(randomExponential(successProbability));
   }
 // SETTING
 // This next function is executed when the script is loaded. It contains the page initialization code.
@@ -146,13 +170,92 @@ function redrawWindow(){
 	isRunning = false; // used by simStep
 	window.clearInterval(simTimer); // clear the Timer
     animationDelay = 550 - document.getElementById("slider1").value; 
+	probArrival = document.getElementById("slider2").value; //Parameters are no longer defined in the code but through the sliders
+    expoentialrate = document.getElementById("slider3").value;//Parameters are no longer defined in the code but through the sliders
+    number_restaranut = document.getElementById("slider4").value;//Parameters are no longer defined in the code but through the sliders
+    number_deliver = document.getElementById("slider5").value;//Parameters are no longer defined in the code but through the sliders
+    maxCols = document.getElementById("slider6").value;//Parameters are no longer defined in the code but through the sliders
 	simTimer = window.setInterval(simStep, animationDelay); // call the function simStep every animationDelay milliseconds
-	
+
 	// Re-initialize simulation variables
 	currentTime = 0;
     delievers = [];
+	customers = [];
+	customer_waiting_list=[];
+	restaurant_waiting_list=[];
+	
 	i_d=0;
 	i_r=0;
+	i_c=0;
+	statistics[0].count=0;
+    statistics[1].count=0;
+    statistics[2].count=0;
+    statistics[3].count=0;
+	Customer_Served=0;
+	Customer_waiting=0;
+
+	// windows
+	nrow=maxCols/2.1-3
+	ncol=maxCols/2.1-2	
+	Buildings = [];
+	barriers=[];
+	restaurants=[];
+	rowBuildings = range(srow, srow+nrow, 3);
+	colBuildings = range(scol+1, scol+ncol, 3);
+	
+	// area
+	areas =[
+		{"label":"City","startRow":srow,"numRows":nrow,"startCol":scol,"numCols":ncol,"color":"#FFCC99"},	
+	   ]
+  	// Generate row and col for number_restaranut
+	r_row=[];
+	r_col=[];
+	while(i_r<number_restaranut){
+		i_r=i_r+1;
+		const row = rowBuildings[Math.floor(Math.random() * rowBuildings.length)];
+		const col = colBuildings[Math.floor(Math.random() * colBuildings.length)];
+		// BUG: cannot generate at the same place
+		r_row.push(row);
+		r_col.push(col);
+	}
+	i_r=0;
+	//Create all possible combinations of building coordinates
+	var IsRestaurant=false;
+	for (var i = 0; i < rowBuildings.length; i++) {
+		for (var j = 0; j < colBuildings.length; j++){
+			for(var index=0; index<number_restaranut;index++)
+			{
+				if(rowBuildings[i]==r_row[index]&& colBuildings[j]==r_col[index]){
+					IsRestaurant=true;
+				}
+			}
+			if (IsRestaurant) {
+				var newrestarant ={"id":++i_r,"location":{"row":rowBuildings[i], "col":colBuildings[j]},
+				"state":IDLE,"timeAdmitted":0,"target":[],"Cook":false,"Deliver":false,"Customer":-1};
+				restaurants.push(newrestarant);
+	
+			}
+			else{
+			var newbuilding ={"row":rowBuildings[i], "col":colBuildings[j]};
+			Buildings.push(newbuilding); }
+			IsRestaurant=false;
+			var newbarrier ={"row":rowBuildings[i], "col":colBuildings[j],"count":0};
+			barriers.push(newbarrier);
+	
+		}
+	}
+
+	//
+	maxrowbuilding=Math.max.apply(Math, rowBuildings);
+	statistics = [
+		{"name":"No. Customers Waiting: ","location":{"row":maxrowbuilding-4,"col":scol+ncol},"count":0},
+		{"name":"No. Customers Served: ","location":{"row":maxrowbuilding-3,"col":scol+ncol},"count":0},
+		{"name":"Service Rate: ","location":{"row":maxrowbuilding-2,"col":scol+ncol},"count":0},
+		{"name":"Avg Serving Time: ","location":{"row":maxrowbuilding-1,"col":scol+ncol},"count":0},
+		];
+	Customer_Served=0;
+	Customer_waiting=0;
+	
 	//resize the drawing surface; remove all its contents; 
 	var drawsurface = document.getElementById("surface");
 	var creditselement = document.getElementById("credits");
@@ -174,6 +277,7 @@ function redrawWindow(){
 	numRows = Math.ceil(surfaceHeight/cellWidth);
 	cellHeight = surfaceHeight/numRows;
 	
+	
 	// In other functions we will access the drawing surface using the d3 library. 
 	//Here we set the global variable, surface, equal to the d3 selection of the drawing surface
 	surface = d3.select('#surface');
@@ -190,6 +294,16 @@ function getLocationCell(location){
 	var x = (col-1)*cellWidth; //cellWidth is set in the redrawWindow function
 	var y = (row-1)*cellHeight; //cellHeight is set in the redrawWindow function
 	return {"x":x,"y":y};
+}
+function getRowCell(location){
+	var row = location;
+	var y = (row-1)*cellHeight; //cellHeight is set in the redrawWindow function
+	return y;
+}
+function getColCell(location){
+	var col = location;
+	var x = (col-1)*cellWidth; //cellWidth is set in the redrawWindow function
+	return x;
 }
 
 
@@ -218,7 +332,8 @@ function updateSurface(){
 	 .attr("y",function(d){var cell= getLocationCell(d.location); return cell.y+"px";})
 	 .attr("width", Math.min(cellWidth,cellHeight)+"px")
 	 .attr("height", Math.min(cellWidth,cellHeight)+"px")
-	 .attr("xlink:href",urlDeliever);
+	 .attr("xlink:href",function(d){if (d.type==CAR) return urlCar; else{ if(d.type==BIKE) return urlBicycle;else return urlMotor;}})
+
 	
 	// For the existing citizens, we want to update their location on the screen 
 	// but we would like to do it with a smooth transition from their previous position.
@@ -231,7 +346,7 @@ function updateSurface(){
 	images.transition()
 	 .attr("x",function(d){var cell= getLocationCell(d.location); return cell.x+"px";})
      .attr("y",function(d){var cell= getLocationCell(d.location); return cell.y+"px";})
-     .attr("xlink:href",urlDeliever)
+	 .attr("xlink:href",function(d){if (d.type==CAR) return urlCar; else{ if(d.type==BIKE) return urlBicycle;else return urlMotor;}})
 	 .duration(animationDelay).ease('linear'); // This specifies the speed and type of transition we want.
  
 	
@@ -282,6 +397,40 @@ function updateSurface(){
 	 .attr("width", Math.min(cellWidth,cellHeight)+"px")
 	 .attr("height", Math.min(cellWidth,cellHeight)+"px")
 	 .attr("xlink:href",urlCustomer);
+
+	// Fiftht number of customer at this block:
+	var allcounts = surface.selectAll(".count").data(barriers);
+	var newcounts = allcounts.enter().append("g").attr("class","count");
+	// For each new statistic group created we append a text label
+	newcounts.append("text")
+	.attr("x", function(d) { var cell= getColCell(d.col); return (cell+cellWidth)+"px"; })
+    .attr("y", function(d) { var cell= getRowCell(d.row); return (cell+cellHeight/2)+"px"; })
+    .attr("dy", ".35em")
+    .text(""); 
+	
+	// The data in the statistics array are always being updated.
+	// So, here we update the text in the labels with the updated information.
+	allcounts.selectAll("text").text(function(d) {
+		var number = d.count; // cumulativeValue and count for each statistic are always changing
+		if(number>0){
+		return number;}}); //The toFixed() function sets the number of decimal places to display
+	
+	// Sixth: Statistic bar
+	var allstatistics = surface.selectAll(".statistics").data(statistics);
+	var newstatistics = allstatistics.enter().append("g").attr("class","statistics");
+	// For each new statistic group created we append a text label
+	newstatistics.append("text")
+	.attr("x", function(d) { var cell= getLocationCell(d.location); return (cell.x+cellWidth)+"px"; })
+    .attr("y", function(d) { var cell= getLocationCell(d.location); return (cell.y+cellHeight/2)+"px"; })
+    .attr("dy", ".35em")
+    .text(""); 
+	
+	// The data in the statistics array are always being updated.
+	// So, here we update the text in the labels with the updated information.
+	allstatistics.selectAll("text").text(function(d) {
+		var number = d.count; // cumulativeValue and count for each statistic are always changing
+		return d.name+number.toFixed(1); }); //The toFixed() function sets the number of decimal places to display
+
 	
 }
 
@@ -309,8 +458,20 @@ function addDynamicAgents(){
         targetisbuilding=Buildings.filter(function(d){return d.row==targetrow && d.col==targetcol;});    
         }
         // delivers is set as RANDOM stage as beginging with finding random place to go
+		var temp= Math.random();
+		if(temp<P_car){
         var new_deliver={"id":i_d,"location":{"row":homerow,"col":homecol},
-        "target":{"row":targetrow,"col":targetcol},"state":RANDOM,"timeAdmitted":0,"picktime":HUGE,"customer":[],"restaurnt":-1};
+        "target":{"row":targetrow,"col":targetcol},"state":RANDOM,"timeAdmitted":0,"picktime":HUGE,"customer":[],"restaurnt":-1,"OrderID":-1,"type":CAR};}
+		else{
+			if(temp<(P_car+P_bike)){
+				var new_deliver={"id":i_d,"location":{"row":homerow,"col":homecol},
+				"target":{"row":targetrow,"col":targetcol},"state":RANDOM,"timeAdmitted":0,"picktime":HUGE,"customer":[],"restaurnt":-1,"OrderID":-1,"type":BIKE};
+			}
+			else{
+				var new_deliver={"id":i_d,"location":{"row":homerow,"col":homecol},
+				"target":{"row":targetrow,"col":targetcol},"state":RANDOM,"timeAdmitted":0,"picktime":HUGE,"customer":[],"restaurnt":-1,"OrderID":-1,"type":MOTOR};
+			}
+		}
         delievers.push(new_deliver)
     };
 
@@ -327,16 +488,25 @@ function addDynamicAgents(){
 		// change the restaurant to be busy
 		var restaurant=restaurants[target-1];
 		restaurant.state=BUSY;
+		restaurant.Customer=i_c;
 		var neworder={"location":{"row":homerow,"col":homecol}};
 		restaurant.target.push(neworder);
     	customers.push(newcustomer);
+		// count number of customer at this block
+		var targetplace=barriers.filter(function(d){return d.row==homerow && d.col==homecol;})[0];  
+		targetplace.count= Number(targetplace.count)+1;
+		Customer_waiting++;
+
+
+
+
 	}
     
 
 	}
 
 //Update
-var deliver_arrived_distance=Math.sqrt(cellHeight*cellHeight+cellWidth*cellWidth);
+var deliver_arrived_distance=1;
 function updateDeliver(deliverIndex){
 	//deliverIndex is an index into the deliver data array
 	deliverIndex = Number(deliverIndex);
@@ -348,11 +518,26 @@ function updateDeliver(deliverIndex){
 	var endtime =deliver.picktime;
 	var r_id = deliver.restaurant;
 	var hasArrived =false;
-
+	var type = deliver.type;
+	var move =false;
+	var tmep=Math.random();
+	switch(type){
+		case CAR:
+			move=true;
+			break;
+		case BIKE:
+			if(tmep<bike_move){move=true};
+			break;
+		case MOTOR:
+			if(tmep<motor_move){move=true};
+			break;
+		default:
+		break;
+	}
 	// determine if citizen has arrived at the target
-	var distance=Math.sqrt((deliver.target.row-row)*(deliver.target.row-row)+(deliver.target.col-col)*(deliver.target.col-col))
+	var distance= Math.abs(deliver.target.row-row) + Math.abs(deliver.target.col-col);
 	
-	if (distance<deliver_arrived_distance){
+	if (distance<=deliver_arrived_distance){
 		hasArrived=true;
 	}
    	// Behavior of citizen depends on his or her state
@@ -381,31 +566,48 @@ function updateDeliver(deliverIndex){
 			if (hasArrived) {
 				if(currentTime>=endtime){
 					// pick and go to customer:
-					// var newrestarant ={"id":++i_r,"location":{"row":rowBuildings[i], "col":colBuildings[j]},"state":IDLE,"timeAdmitted":0,"target":[],"Cook":false,"Deliver":false};
+					// var newrestarant ={"id":++i_r,"location":{"row":rowBuildings[i], "col":colBuildings[j]},"state":IDLE,"timeAdmitted":0,"target":[],"Cook":false,"Deliver":false,"Customer":-1};
 					// var newcustomer = {"id":++i_c,"targer":target,"location":{"row":homerow,"col":homecol},"state":WAITING,"timeAdmitted":0};
 					// var neworder={"location":{"row":homerow,"col":homecol}};	
-					// var new_deliver={"id":i_d,"location":{"row":homerow,"col":homecol},"target":{"row":targetrow,"col":targetcol},"state":RANDOM,"timeAdmitted":0,"picktime":HUGE,"customer":[],"restaurant":-1}
+					// var new_deliver={"id":i_d,"location":{"row":homerow,"col":homecol},"target":{"row":targetrow,"col":targetcol},"state":RANDOM,"timeAdmitted":0,"picktime":HUGE,"customer":[],"restaurant":-1,"OrderID":-1}
 					var customer_location=deliver.customer.shift();
 					deliver.state=TOCUSTOMER;
 					deliver.target.row=customer_location.location.row;
 					deliver.target.col=customer_location.location.col;
 					picktime=HUGE;
-
 					// restaurant:
 					var restaurant = restaurants[r_id-1];
 					restaurant.state=IDLE;
 					restaurant.Deliver=false;
 					restaurant.Cook=false;
+					restaurant.Customer=-1;
+
 					
 				}}
 				
 		break;
+
+		case TOCUSTOMER:
+			if(hasArrived){
+				var customer_id=deliver.OrderID;
+				for(var customerIndex in customers){
+					customerIndex = Number(customerIndex);
+					var customer = customers[customerIndex];
+					if (customer_id== customer.id){
+						customer.state = EXIT;
+						deliver.state=RANDOM;
+						break;
+					}
+				}
+
+			}
 
 		default:
         break;
         
 	}
 	// UPDATE
+	if(move){
 	   // set the current row and column of the citizen
 	   var currentrow=deliver.location.row;
 	   var currentcol=deliver.location.col;
@@ -460,7 +662,7 @@ function updateDeliver(deliverIndex){
 		deliver.location.col = newCol;
 		
 	
-}
+}}
 
 function updateCustomers(customerIndex){
 	//citizenIndex is an index into the citizens data array
@@ -470,20 +672,22 @@ function updateCustomers(customerIndex){
 	var row = customer.location.row;
 	var col = customer.location.col;
 	var state = customer.state;
+	var time_start=customer.timeAdmitted;
 	
 	// Check deliver has arrived?
-	
 	switch(state){
 		case WAITING:
-			// if arrived update to exit 
+			break;
+		case EXIT:
+			var targetplace=barriers.filter(function(d){return d.row==row && d.col==col;})[0];  
+			targetplace.count=targetplace.count-1;
+			Customer_waiting--;
+			Customer_Served++;
 
 			break;
 		default:
 		break;
-
-		
 	}
-		
 }
 
 function updateResaurant(restaurantIndex){
@@ -494,6 +698,7 @@ function updateResaurant(restaurantIndex){
 	var col = restaurant.location.col;
 	var state = restaurant.state;
 	var id = restaurant.id;
+	var c_id=restaurant.Customer;
 	// Check deliver has arrived?
 	
 	switch(state){
@@ -510,6 +715,9 @@ function updateResaurant(restaurantIndex){
 				// update Currenttime
 				var service_time=randomGeometric(expoentialrate);
 				var end_time=currentTime+service_time;
+				console.log(currentTime);
+				console.log(end_time);
+				console.log("end");
 				// find a driver:
 				// If driver come near the restaurant it will be ask to take this order if it's idle
 				
@@ -539,6 +747,7 @@ function updateResaurant(restaurantIndex){
 					assigndeliver.state=TORESTAURANT;
 					assigndeliver.picktime=end_time;
 					assigndeliver.restaurant=id;
+					assigndeliver.OrderID=c_id;
 					// var newrestarant ={"id":++i_r,"location":{"row":rowBuildings[i], "col":colBuildings[j]},"state":IDLE,"timeAdmitted":0,"target":[],"Cook":false,"Deliver":false};
 					// var neworder={"location":{"row":homerow,"col":homecol}};
 					// var new_deliver={"id":i_d,"location":{"row":homerow,"col":homecol},"target":{"row":targetrow,"col":targetcol},"state":RANDOM,"timeAdmitted":0,"picktime":HUGE,"customer":[]}
@@ -590,6 +799,7 @@ function removeDynamicAgents(){
 	// and no citizens should have state EXITED
 }
 
+
 function simStep(){
 	//This function is called by a timer; if running, it executes one simulation step 
 	//The timing interval is set in the page initialization function near the top of this file
@@ -603,6 +813,11 @@ function simStep(){
 		// Sometimes agents will be removed in the following function
         removeDynamicAgents();
 
+		// update stat:
+        statistics[0].count=Customer_waiting;
+        statistics[1].count=Customer_Served;
+		statistics[2].count=Customer_Served/(Customer_Served+Customer_waiting);
+		statistics[3].count=currentTime/Customer_Served;
 	}
 }
 	

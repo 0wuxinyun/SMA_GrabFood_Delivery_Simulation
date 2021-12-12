@@ -26,13 +26,13 @@
 		<p style="position:absolute;top:2.5%;left:5%"> 1) Simulation Speed </p>
 		<p><input id="slider1" type="range" min="0" value="300" max="5000" step="10" onchange="redrawWindow();" style="position:absolute;top:12.5%;left:5%"/></p>
 		<p style="position:absolute;top:17.5%;left:5%"> 2) Probability Order Arrival </p>
-	    <p><input id="slider2" type="range" min="0" value="0.7" max="1" step="0.05" onchange="redrawWindow();" style="position:absolute;top:27.5%;left:5%" /></p>
+	    <p><input id="slider2" type="range" min="0" value="0.7" max="1" step="0.01" onchange="redrawWindow();" style="position:absolute;top:27.5%;left:5%" /></p>
 		<p style="position:absolute;top:32.5%;left:5%"> 3) Restaurant Cook Rate</p>
-		<p><input id="slider3" type="range" min="1" value="5" max="10" step="0.5" onchange="redrawWindow();" style="position:absolute;top:42.5%;left:5%" /></p>
+		<p><input id="slider3" type="range" min="0.1" value="1" max="1" step="0.1" onchange="redrawWindow();" style="position:absolute;top:42.5%;left:5%" /></p>
 		<p style="position:absolute;top:47.5%;left:5%"> 4) Number of Restaurant</p>
-		<p><input id="slider4" type="range" min="1" value="5" max="10" step="1" onchange="redrawWindow();" style="position:absolute;top:57.5%;left:5%" /></p>
+		<p><input id="slider4" type="range" min="1" value="20" max="40" step="1" onchange="redrawWindow();" style="position:absolute;top:57.5%;left:5%" /></p>
 		<p style="position:absolute;top:62.5%;left:5%"> 5) Number of Deliver</p>
-		<p><input id="slider5" type="range" min="1" value="10" max="20" step="1" onchange="redrawWindow();" style="position:absolute;top:72.5%;left:5%" /></p>
+		<p><input id="slider5" type="range" min="1" value="25" max="50" step="1" onchange="redrawWindow();" style="position:absolute;top:72.5%;left:5%" /></p>
 		<p style="position:absolute;top:77.5%;left:5%"> 6) Region Size</p>
 		<p><input id="slider6" type="range" min="40" value="40" max="100" step="10" onchange="redrawWindow();" style="position:absolute;top:87.5%;left:5%" /></p>
 	</div>
@@ -42,12 +42,12 @@
 	<svg  id="surface" style="width:100% height:100%" xmlns="http://www.w3.org/2000/svg" version="1.1" onclick="toggleSimStep();">
 	</svg>
 	
-	<div id="title"  style="position:absolute;bottom:0;left:0">Circuit Breaker Agent-Based Model</div>
+	<div id="title"  style="position:absolute;bottom:0;left:0">Grab Food Simulation-T24</div>
 	<a id="credits" href="http://www.icons-land.com" style="position:absolute;bottom:0;right:0">Icons by icons-land.com</a>
 	
 	<!-- Anything below this line should be a popup window or dialog or a late-loading library -->
 	
-	<script type="text/javascript" src="lib/Delivers3.js"></script>
+	<script type="text/javascript" src="lib/Main.js"></script>
 
 	<!-- Add in Charts -->	
 	<div id="chart1" style="position:absolute; top:0%; left:66%; width:35%; height:55%;"></div>
